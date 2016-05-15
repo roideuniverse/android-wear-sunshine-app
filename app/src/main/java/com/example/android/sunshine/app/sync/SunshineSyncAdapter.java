@@ -149,6 +149,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                     .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                     .build();
 
+            Log.d("kaushik", "key==" + BuildConfig.OPEN_WEATHER_MAP_API_KEY);
+
             URL url = new URL(builtUri.toString());
 
             // Create the request to OpenWeatherMap, and open the connection
