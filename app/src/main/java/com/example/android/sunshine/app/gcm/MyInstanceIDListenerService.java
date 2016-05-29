@@ -17,9 +17,11 @@
 package com.example.android.sunshine.app.gcm;
 
 import android.content.Intent;
+
 import com.google.android.gms.iid.InstanceIDListenerService;
 
-public class MyInstanceIDListenerService extends InstanceIDListenerService {
+public class MyInstanceIDListenerService extends InstanceIDListenerService
+{
     private static final String TAG = "MyInstanceIDLS";
 
     /**
@@ -28,7 +30,8 @@ public class MyInstanceIDListenerService extends InstanceIDListenerService {
      * InstanceID provider.
      */
     @Override
-    public void onTokenRefresh() {
+    public void onTokenRefresh()
+    {
         // Fetch updated Instance ID token.
         Intent intent = new Intent(this, RegistrationIntentService.class);
         startService(intent);
