@@ -24,8 +24,15 @@ import java.util.concurrent.ExecutionException;
  * RemoteViewsService controlling the data being shown in the scrollable weather detail widget
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-public class DetailWidgetRemoteViewsService extends RemoteViewsService {
-    public final String LOG_TAG = DetailWidgetRemoteViewsService.class.getSimpleName();
+public class DetailWidgetRemoteViewsService extends RemoteViewsService
+{
+    // these indices must match the projection
+    static final int INDEX_WEATHER_ID = 0;
+    static final int INDEX_WEATHER_DATE = 1;
+    static final int INDEX_WEATHER_CONDITION_ID = 2;
+    static final int INDEX_WEATHER_DESC = 3;
+    static final int INDEX_WEATHER_MAX_TEMP = 4;
+    static final int INDEX_WEATHER_MIN_TEMP = 5;
     private static final String[] FORECAST_COLUMNS = {
             WeatherContract.WeatherEntry.TABLE_NAME + "." + WeatherContract.WeatherEntry._ID,
             WeatherContract.WeatherEntry.COLUMN_DATE,
@@ -34,27 +41,26 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
             WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
             WeatherContract.WeatherEntry.COLUMN_MIN_TEMP
     };
-    // these indices must match the projection
-    static final int INDEX_WEATHER_ID = 0;
-    static final int INDEX_WEATHER_DATE = 1;
-    static final int INDEX_WEATHER_CONDITION_ID = 2;
-    static final int INDEX_WEATHER_DESC = 3;
-    static final int INDEX_WEATHER_MAX_TEMP = 4;
-    static final int INDEX_WEATHER_MIN_TEMP = 5;
+    public final String LOG_TAG = DetailWidgetRemoteViewsService.class.getSimpleName();
 
     @Override
-    public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        return new RemoteViewsFactory() {
+    public RemoteViewsFactory onGetViewFactory(Intent intent)
+    {
+        return new RemoteViewsFactory()
+        {
             private Cursor data = null;
 
             @Override
-            public void onCreate() {
+            public void onCreate()
+            {
                 // Nothing to do
             }
 
             @Override
-            public void onDataSetChanged() {
-                if (data != null) {
+            public void onDataSetChanged()
+            {
+                if(data != null)
+                {
                     data.close();
                 }
                 // This method is called by the app hosting the widget (e.g., the launcher)
@@ -74,22 +80,27 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
             }
 
             @Override
-            public void onDestroy() {
-                if (data != null) {
+            public void onDestroy()
+            {
+                if(data != null)
+                {
                     data.close();
                     data = null;
                 }
             }
 
             @Override
-            public int getCount() {
+            public int getCount()
+            {
                 return data == null ? 0 : data.getCount();
             }
 
             @Override
-            public RemoteViews getViewAt(int position) {
-                if (position == AdapterView.INVALID_POSITION ||
-                        data == null || !data.moveToPosition(position)) {
+            public RemoteViews getViewAt(int position)
+            {
+                if(position == AdapterView.INVALID_POSITION ||
+                        data == null || ! data.moveToPosition(position))
+                {
                     return null;
                 }
                 RemoteViews views = new RemoteViews(getPackageName(),
@@ -97,17 +108,22 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
                 int weatherId = data.getInt(INDEX_WEATHER_CONDITION_ID);
                 int weatherArtResourceId = Utility.getIconResourceForWeatherCondition(weatherId);
                 Bitmap weatherArtImage = null;
-                if ( !Utility.usingLocalGraphics(DetailWidgetRemoteViewsService.this) ) {
+                if(! Utility.usingLocalGraphics(DetailWidgetRemoteViewsService.this))
+                {
                     String weatherArtResourceUrl = Utility.getArtUrlForWeatherCondition(
                             DetailWidgetRemoteViewsService.this, weatherId);
-                    try {
+                    try
+                    {
                         weatherArtImage = Glide.with(DetailWidgetRemoteViewsService.this)
                                 .load(weatherArtResourceUrl)
                                 .asBitmap()
                                 .error(weatherArtResourceId)
                                 .into(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        Log.e(LOG_TAG, "Error retrieving large icon from " + weatherArtResourceUrl, e);
+                    }
+                    catch(InterruptedException | ExecutionException e)
+                    {
+                        Log.e(LOG_TAG, "Error retrieving large icon from " +
+                                weatherArtResourceUrl, e);
                     }
                 }
                 String description = data.getString(INDEX_WEATHER_DESC);
@@ -120,12 +136,16 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
                         Utility.formatTemperature(DetailWidgetRemoteViewsService.this, maxTemp);
                 String formattedMinTemperature =
                         Utility.formatTemperature(DetailWidgetRemoteViewsService.this, minTemp);
-                if (weatherArtImage != null) {
+                if(weatherArtImage != null)
+                {
                     views.setImageViewBitmap(R.id.widget_icon, weatherArtImage);
-                } else {
+                }
+                else
+                {
                     views.setImageViewResource(R.id.widget_icon, weatherArtResourceId);
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
+                {
                     setRemoteContentDescription(views, description);
                 }
                 views.setTextViewText(R.id.widget_date, formattedDate);
@@ -144,31 +164,38 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
                 return views;
             }
 
-            @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
-            private void setRemoteContentDescription(RemoteViews views, String description) {
-                views.setContentDescription(R.id.widget_icon, description);
-            }
-
             @Override
-            public RemoteViews getLoadingView() {
+            public RemoteViews getLoadingView()
+            {
                 return new RemoteViews(getPackageName(), R.layout.widget_detail_list_item);
             }
 
             @Override
-            public int getViewTypeCount() {
+            public int getViewTypeCount()
+            {
                 return 1;
             }
 
             @Override
-            public long getItemId(int position) {
-                if (data.moveToPosition(position))
+            public long getItemId(int position)
+            {
+                if(data.moveToPosition(position))
+                {
                     return data.getLong(INDEX_WEATHER_ID);
+                }
                 return position;
             }
 
             @Override
-            public boolean hasStableIds() {
+            public boolean hasStableIds()
+            {
                 return true;
+            }
+
+            @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
+            private void setRemoteContentDescription(RemoteViews views, String description)
+            {
+                views.setContentDescription(R.id.widget_icon, description);
             }
         };
     }

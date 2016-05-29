@@ -15,16 +15,19 @@ import android.os.Bundle;
  * http://developer.android.com/training/sync-adapters/creating-authenticator.html
  * Which is a pretty handy reference when creating your own syncadapters.  Just sayin'.
  */
-public class SunshineAuthenticator extends AbstractAccountAuthenticator {
+public class SunshineAuthenticator extends AbstractAccountAuthenticator
+{
 
-    public SunshineAuthenticator(Context context) {
+    public SunshineAuthenticator(Context context)
+    {
         super(context);
     }
 
     // No properties to edit.
     @Override
     public Bundle editProperties(
-            AccountAuthenticatorResponse r, String s) {
+            AccountAuthenticatorResponse r, String s)
+    {
         throw new UnsupportedOperationException();
     }
 
@@ -35,7 +38,8 @@ public class SunshineAuthenticator extends AbstractAccountAuthenticator {
             String s,
             String s2,
             String[] strings,
-            Bundle bundle) throws NetworkErrorException {
+            Bundle bundle) throws NetworkErrorException
+    {
         return null;
     }
 
@@ -44,7 +48,8 @@ public class SunshineAuthenticator extends AbstractAccountAuthenticator {
     public Bundle confirmCredentials(
             AccountAuthenticatorResponse r,
             Account account,
-            Bundle bundle) throws NetworkErrorException {
+            Bundle bundle) throws NetworkErrorException
+    {
         return null;
     }
 
@@ -54,13 +59,15 @@ public class SunshineAuthenticator extends AbstractAccountAuthenticator {
             AccountAuthenticatorResponse r,
             Account account,
             String s,
-            Bundle bundle) throws NetworkErrorException {
+            Bundle bundle) throws NetworkErrorException
+    {
         throw new UnsupportedOperationException();
     }
 
     // Getting a label for the auth token is not supported
     @Override
-    public String getAuthTokenLabel(String s) {
+    public String getAuthTokenLabel(String s)
+    {
         throw new UnsupportedOperationException();
     }
 
@@ -69,7 +76,8 @@ public class SunshineAuthenticator extends AbstractAccountAuthenticator {
     public Bundle updateCredentials(
             AccountAuthenticatorResponse r,
             Account account,
-            String s, Bundle bundle) throws NetworkErrorException {
+            String s, Bundle bundle) throws NetworkErrorException
+    {
         throw new UnsupportedOperationException();
     }
 
@@ -77,7 +85,8 @@ public class SunshineAuthenticator extends AbstractAccountAuthenticator {
     @Override
     public Bundle hasFeatures(
             AccountAuthenticatorResponse r,
-            Account account, String[] strings) throws NetworkErrorException {
+            Account account, String[] strings) throws NetworkErrorException
+    {
         throw new UnsupportedOperationException();
     }
 }
