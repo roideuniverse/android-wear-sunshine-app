@@ -22,6 +22,8 @@ import android.test.AndroidTestCase;
 
 import java.util.HashSet;
 
+import roideuniverse.sunshine.common.WeatherContract;
+
 public class TestDb extends AndroidTestCase
 {
 

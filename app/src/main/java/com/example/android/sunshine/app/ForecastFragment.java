@@ -45,7 +45,7 @@ import android.view.ViewTreeObserver;
 import android.widget.AbsListView;
 import android.widget.TextView;
 
-import com.example.android.sunshine.app.data.WeatherContract;
+import roideuniverse.sunshine.common.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 
 /**

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Shared</string>
+    <string name="test_message_capability_name">test_message</string>
+</resources>

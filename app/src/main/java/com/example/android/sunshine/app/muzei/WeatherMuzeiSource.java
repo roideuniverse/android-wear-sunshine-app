@@ -21,7 +21,7 @@ import android.net.Uri;
 
 import com.example.android.sunshine.app.MainActivity;
 import com.example.android.sunshine.app.Utility;
-import com.example.android.sunshine.app.data.WeatherContract;
+import roideuniverse.sunshine.common.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.apps.muzei.api.Artwork;
 import com.google.android.apps.muzei.api.MuzeiArtSource;

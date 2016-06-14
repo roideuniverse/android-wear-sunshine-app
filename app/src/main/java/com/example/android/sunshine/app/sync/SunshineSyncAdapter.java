@@ -34,8 +34,14 @@ import com.example.android.sunshine.app.BuildConfig;
 import com.example.android.sunshine.app.MainActivity;
 import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
-import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -49,8 +55,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import roideuniverse.sunshine.common.Constants;
+import roideuniverse.sunshine.common.WeatherContract;
 
 public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 {
@@ -79,6 +91,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
     private static final int INDEX_MIN_TEMP = 2;
     private static final int INDEX_SHORT_DESC = 3;
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
+
     public SunshineSyncAdapter(Context context, boolean autoInitialize)
     {
         super(context, autoInitialize);
@@ -505,6 +518,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                         WeatherContract.WeatherEntry.COLUMN_DATE + " <= ?",
                         new String[]{Long.toString(dayTime.setJulianDay(julianStartDay - 1))});
 
+                sendDataToWear(cvArray);
                 updateWidgets();
                 updateMuzei();
                 notifyWeather();
@@ -519,6 +533,81 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
             e.printStackTrace();
             setLocationStatus(getContext(), LOCATION_STATUS_SERVER_INVALID);
         }
+    }
+
+    private static final String TAG = SunshineSyncAdapter.class.getSimpleName();
+
+    private void sendDataToWear(ContentValues[] cvs)
+    {
+        Log.d(TAG, "SendDataToWeather");
+        //List<WeatherModel> weatherModelList = new ArrayList<>();
+        // from cv to weatherModelList
+
+        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
+                .addApi(Wearable.API)
+                .build();
+
+        ConnectionResult connectionResult = googleApiClient.blockingConnect(
+                Constants.GOOGLE_API_CLIENT_TIMEOUT_S, TimeUnit.SECONDS);
+
+        // Limit attractions to send
+        int count = cvs.length > Constants.MAX_WEATHERS ?
+                Constants.MAX_WEATHERS : cvs.length;
+
+        ArrayList<DataMap> dataMapList = new ArrayList<>(count);
+        for(int i = 0; i < count; i++)
+        {
+            ContentValues cv = cvs[i];
+            DataMap data = new DataMap();
+            data.putString(WeatherContract.WeatherEntry.COLUMN_LOC_KEY,
+                    cv.get(WeatherContract.WeatherEntry.COLUMN_LOC_KEY).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_DATE, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_DATE).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_HUMIDITY, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_HUMIDITY).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_PRESSURE, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_PRESSURE).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_WIND_SPEED).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_DEGREES, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_DEGREES).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_MAX_TEMP).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_MIN_TEMP).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_SHORT_DESC).toString());
+            data.putString(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, cv.get(WeatherContract
+                    .WeatherEntry.COLUMN_WEATHER_ID).toString());
+            dataMapList.add(data);
+        }
+
+        if (connectionResult.isSuccess() && googleApiClient.isConnected()
+                && dataMapList.size() > 0) {
+
+            PutDataMapRequest dataMap = PutDataMapRequest.create(Constants.WEATHER_PATH);
+            dataMap.getDataMap().putDataMapArrayList(Constants.EXTRA_WEATHERS, dataMapList);
+            dataMap.getDataMap().putLong(Constants.EXTRA_TIMESTAMP, new Date().getTime());
+            PutDataRequest request = dataMap.asPutDataRequest();
+            request.setUrgent();
+
+            // Send the data over
+            DataApi.DataItemResult result =
+                    Wearable.DataApi.putDataItem(googleApiClient, request).await();
+
+            if (!result.getStatus().isSuccess()) {
+                Log.e(LOG_TAG, String.format("Error sending data using DataApi (error code = %d)",
+                        result.getStatus().getStatusCode()));
+            } else {
+                Log.d(LOG_TAG, "Data Updated successfully...");
+            }
+
+        } else {
+            Log.e(LOG_TAG, String.format(Constants.GOOGLE_API_CLIENT_ERROR_MSG,
+                    connectionResult.getErrorCode()));
+            Log.e(LOG_TAG, "succ=" + connectionResult.isSuccess() + "::conn=" + googleApiClient.isConnected() + "::size=" + dataMapList.size());
+        }
+        googleApiClient.disconnect();
     }
 
     private void updateWidgets()

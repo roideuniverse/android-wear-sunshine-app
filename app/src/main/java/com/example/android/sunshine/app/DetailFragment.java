@@ -37,8 +37,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.example.android.sunshine.app.data.WeatherContract;
-import com.example.android.sunshine.app.data.WeatherContract.WeatherEntry;
+import roideuniverse.sunshine.common.WeatherContract;
+import roideuniverse.sunshine.common.WeatherContract.WeatherEntry;
 
 /**
  * A placeholder fragment containing a simple view.
