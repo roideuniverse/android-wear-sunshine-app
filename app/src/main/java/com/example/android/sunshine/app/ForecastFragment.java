@@ -45,8 +45,9 @@ import android.view.ViewTreeObserver;
 import android.widget.AbsListView;
 import android.widget.TextView;
 
-import roideuniverse.sunshine.common.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
+
+import roideuniverse.sunshine.common.WeatherContract;
 
 /**
  * Encapsulates fetching the forecast and displaying it as a

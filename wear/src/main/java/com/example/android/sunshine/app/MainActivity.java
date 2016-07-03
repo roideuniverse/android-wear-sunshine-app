@@ -3,39 +3,35 @@ package com.example.android.sunshine.app;
 import android.app.Activity;
 import android.app.LoaderManager;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.DataEvent;
-import com.google.android.gms.wearable.DataEventBuffer;
-import com.google.android.gms.wearable.MessageApi;
-import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.Wearable;
-
-import java.util.concurrent.TimeUnit;
-
-import roideuniverse.sunshine.common.Constants;
+import roideuniverse.sunshine.common.WeatherContract;
 
 public class MainActivity extends Activity implements
-        LoaderManager.LoaderCallbacks<Cursor>,
-        DataApi.DataListener, MessageApi.MessageListener,
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+        LoaderManager.LoaderCallbacks<Cursor>
 {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final int FORECAST_LOADER = 0;
-    private TextView mTextView;
+    private TextView mMaxTempTv;
+    private TextView mMinTempTv;
+    private ImageView mCurrWeatherImgView;
 
-    private GoogleApiClient mGoogleApiClient;
+    private static final String[] WEATHER_COLUMNS = {
+            WeatherContract.WeatherEntry.COLUMN_DATE,
+            WeatherContract.WeatherEntry.COLUMN_SHORT_DESC,
+            WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+            WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
+            WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -48,46 +44,52 @@ public class MainActivity extends Activity implements
             @Override
             public void onLayoutInflated(WatchViewStub stub)
             {
-                mTextView = (TextView) stub.findViewById(R.id.text);
+                mMaxTempTv = (TextView) stub.findViewById(R.id.watch_temperature_max);
+                mMinTempTv = (TextView) stub.findViewById(R.id.watch_temperature_min);
+                mCurrWeatherImgView = (ImageView) stub.findViewById(R.id.watch_weather_img);
+                getLoaderManager().initLoader(FORECAST_LOADER, null, MainActivity.this);
             }
         });
-        Log.d(TAG, "OnCreate::");
-        getLoaderManager().initLoader(FORECAST_LOADER, null, this);
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-    }
-
-    @Override
-    protected void onResume()
-    {
-        super.onResume();
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onPause()
-    {
-        super.onPause();
-        Wearable.DataApi.removeListener(mGoogleApiClient, this);
-        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
-        mGoogleApiClient.disconnect();
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args)
     {
         Log.d(TAG, "onCreateLoader");
-        return null;
+        String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
+
+        return new CursorLoader(MainActivity.this,
+                WeatherContract.WeatherEntry.CONTENT_URI,
+                WEATHER_COLUMNS,
+                null,
+                null,
+                sortOrder);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data)
     {
-        Log.d(TAG, "onLoadFinished");
+        Log.d(TAG, "onLoadFinished::count=" + data.getCount());
+        for(int i=0;i<data.getCount(); i++)
+        {
+            data.moveToPosition(i);
+            String date = data.getString(data.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_DATE));
+            String maxTemp = data.getString(2);
+            String minTemp = data.getString(3);
+            String weatherId = data.getString(4);
+            mMaxTempTv.setText(formatTemperature(getApplicationContext(), Double.parseDouble(maxTemp)));
+            mMinTempTv.setText(formatTemperature(getApplicationContext(), Double.parseDouble(minTemp)));
+            Log.d(TAG, "i=" + i + "::data=" + date + "::maxT=" + maxTemp + "::minT=" + minTemp + "::wid=" + weatherId);
+            int iconRes = getIconResourceForWeatherCondition(Integer.parseInt(weatherId));
+            if(iconRes != -1) {
+                mCurrWeatherImgView.setImageResource(iconRes);
+                mCurrWeatherImgView.setVisibility(View.VISIBLE);
+            } else {
+                mCurrWeatherImgView.setVisibility(View.GONE);
+            }
+
+        }
+
     }
 
     @Override
@@ -96,69 +98,69 @@ public class MainActivity extends Activity implements
         Log.d(TAG, "onLoaderReset");
     }
 
-    @Override
-    public void onDataChanged(DataEventBuffer dataEventBuffer)
+    public static String formatTemperature(Context context, double temperature)
     {
-        Log.d(TAG, "onDataChanged::");
-        for (DataEvent event : dataEventBuffer) {
-            Uri uri = event.getDataItem().getUri();
-            Log.d(TAG, "type=" + event.getType() + "::uri=" + uri);
-        }
-    }
-
-    @Override
-    public void onConnected(Bundle bundle)
-    {
-        Log.d(TAG, "onConnected::" + bundle);
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
-        Wearable.MessageApi.addListener(mGoogleApiClient, this);
-    }
-
-    @Override
-    public void onConnectionSuspended(int i)
-    {
-        Log.d(TAG, "onConnectionSuspended::" + i);
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult)
-    {
-        Log.d(TAG, "onConnectionFailed::" + connectionResult.getErrorCode());
-    }
-
-    @Override
-    public void onMessageReceived(MessageEvent messageEvent)
-    {
-        Log.d(TAG, "onMessageReceived::" + messageEvent);
-    }
-
-    private class FetchWeatherAsyncTask extends AsyncTask<Uri, Void, Void>
-    {
-        private Context mContext;
-
-        FetchWeatherAsyncTask(Context context)
+        // Data stored in Celsius by default.  If user prefers to see in Fahrenheit, convert
+        // the values here.
+        String suffix = "\u00B0";
+        Log.d(TAG, "isMetric=" + PrefManager.getInstance(context).isMetric());
+        if(! PrefManager.getInstance(context).isMetric())
         {
-            mContext = context;
+            temperature = (temperature * 1.8) + 32;
         }
 
-        @Override
-        protected Void doInBackground(Uri... params)
+        // For presentation, assume the user doesn't care about tenths of a degree.
+        return String.format(context.getString(R.string.format_temperature), temperature);
+    }
+
+    public static int getIconResourceForWeatherCondition(int weatherId)
+    {
+        // Based on weather code data found at:
+        // http://bugs.openweathermap.org/projects/api/wiki/Weather_Condition_Codes
+        if(weatherId >= 200 && weatherId <= 232)
         {
-            // Connect to Play Services and the Wearable API
-            GoogleApiClient googleApiClient = new GoogleApiClient.Builder(mContext)
-                    .addApi(Wearable.API)
-                    .build();
-
-            ConnectionResult connectionResult = googleApiClient.blockingConnect(
-                    Constants.GOOGLE_API_CLIENT_TIMEOUT_S, TimeUnit.SECONDS);
-
-            if (!connectionResult.isSuccess() || !googleApiClient.isConnected()) {
-                Log.e(TAG, String.format(Constants.GOOGLE_API_CLIENT_ERROR_MSG,
-                        connectionResult.getErrorCode()));
-                return null;
-            }
-
-            return null;
+            return R.drawable.ic_storm;
         }
+        else if(weatherId >= 300 && weatherId <= 321)
+        {
+            return R.drawable.ic_light_rain;
+        }
+        else if(weatherId >= 500 && weatherId <= 504)
+        {
+            return R.drawable.ic_rain;
+        }
+        else if(weatherId == 511)
+        {
+            return R.drawable.ic_snow;
+        }
+        else if(weatherId >= 520 && weatherId <= 531)
+        {
+            return R.drawable.ic_rain;
+        }
+        else if(weatherId >= 600 && weatherId <= 622)
+        {
+            return R.drawable.ic_snow;
+        }
+        else if(weatherId >= 701 && weatherId <= 761)
+        {
+            return R.drawable.ic_fog;
+        }
+        else if(weatherId == 761 || weatherId == 781)
+        {
+            return R.drawable.ic_storm;
+        }
+        else if(weatherId == 800)
+        {
+            return R.drawable.ic_clear;
+        }
+        else if(weatherId == 801)
+        {
+            return R.drawable.ic_light_clouds;
+        }
+        else if(weatherId >= 802 && weatherId <= 804)
+        {
+            return R.drawable.ic_cloudy;
+        }
+        return - 1;
     }
 }

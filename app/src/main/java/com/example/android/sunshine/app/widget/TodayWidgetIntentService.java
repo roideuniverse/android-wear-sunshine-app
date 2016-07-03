@@ -32,6 +32,7 @@ import android.widget.RemoteViews;
 import com.example.android.sunshine.app.MainActivity;
 import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
+
 import roideuniverse.sunshine.common.WeatherContract;
 
 /**

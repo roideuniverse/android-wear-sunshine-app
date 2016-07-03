@@ -3,7 +3,6 @@ package com.example.android.sunshine.app.sync;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
@@ -25,6 +24,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.IntDef;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.format.Time;
 import android.util.Log;
@@ -55,7 +55,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
@@ -489,7 +488,6 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 low = temperatureObject.getDouble(OWM_MIN);
 
                 ContentValues weatherValues = new ContentValues();
-
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_LOC_KEY, locationId);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_DATE, dateTime);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_HUMIDITY, humidity);
@@ -500,8 +498,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, low);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, description);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
-
                 cVVector.add(weatherValues);
+
+                if(i == 0)
+                {
+                    sendDataToWear(weatherValues);
+                }
             }
 
             int inserted = 0;
@@ -518,7 +520,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                         WeatherContract.WeatherEntry.COLUMN_DATE + " <= ?",
                         new String[]{Long.toString(dayTime.setJulianDay(julianStartDay - 1))});
 
-                sendDataToWear(cvArray);
+
                 updateWidgets();
                 updateMuzei();
                 notifyWeather();
@@ -537,11 +539,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
     private static final String TAG = SunshineSyncAdapter.class.getSimpleName();
 
-    private void sendDataToWear(ContentValues[] cvs)
+    private void sendDataToWear(ContentValues cv)
     {
-        Log.d(TAG, "SendDataToWeather");
-        //List<WeatherModel> weatherModelList = new ArrayList<>();
-        // from cv to weatherModelList
+        Log.d(TAG, "SendDataToWear");
 
         GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
                 .addApi(Wearable.API)
@@ -550,43 +550,36 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
         ConnectionResult connectionResult = googleApiClient.blockingConnect(
                 Constants.GOOGLE_API_CLIENT_TIMEOUT_S, TimeUnit.SECONDS);
 
-        // Limit attractions to send
-        int count = cvs.length > Constants.MAX_WEATHERS ?
-                Constants.MAX_WEATHERS : cvs.length;
+        DataMap data = new DataMap();
+        boolean isMetric = Utility.isMetric(getContext());
+        Log.d(TAG, "setIsMetric::" + isMetric);
+        data.putBoolean(Constants.EXTRA_DATA_IS_METRIC, isMetric);
+        data.putString(WeatherContract.WeatherEntry.COLUMN_LOC_KEY,
+                cv.get(WeatherContract.WeatherEntry.COLUMN_LOC_KEY).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_DATE, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_DATE).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_HUMIDITY, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_HUMIDITY).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_PRESSURE, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_PRESSURE).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_WIND_SPEED).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_DEGREES, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_DEGREES).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_MAX_TEMP).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_MIN_TEMP).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_SHORT_DESC).toString());
+        data.putString(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, cv.get(WeatherContract
+                .WeatherEntry.COLUMN_WEATHER_ID).toString());
 
-        ArrayList<DataMap> dataMapList = new ArrayList<>(count);
-        for(int i = 0; i < count; i++)
+        if(connectionResult.isSuccess() && googleApiClient.isConnected())
         {
-            ContentValues cv = cvs[i];
-            DataMap data = new DataMap();
-            data.putString(WeatherContract.WeatherEntry.COLUMN_LOC_KEY,
-                    cv.get(WeatherContract.WeatherEntry.COLUMN_LOC_KEY).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_DATE, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_DATE).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_HUMIDITY, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_HUMIDITY).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_PRESSURE, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_PRESSURE).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_WIND_SPEED).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_DEGREES, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_DEGREES).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_MAX_TEMP).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_MIN_TEMP).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_SHORT_DESC).toString());
-            data.putString(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, cv.get(WeatherContract
-                    .WeatherEntry.COLUMN_WEATHER_ID).toString());
-            dataMapList.add(data);
-        }
-
-        if (connectionResult.isSuccess() && googleApiClient.isConnected()
-                && dataMapList.size() > 0) {
 
             PutDataMapRequest dataMap = PutDataMapRequest.create(Constants.WEATHER_PATH);
-            dataMap.getDataMap().putDataMapArrayList(Constants.EXTRA_WEATHERS, dataMapList);
+            dataMap.getDataMap().putDataMap(Constants.EXTRA_DATA_WEATHER, data);
             dataMap.getDataMap().putLong(Constants.EXTRA_TIMESTAMP, new Date().getTime());
             PutDataRequest request = dataMap.asPutDataRequest();
             request.setUrgent();
@@ -595,17 +588,23 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
             DataApi.DataItemResult result =
                     Wearable.DataApi.putDataItem(googleApiClient, request).await();
 
-            if (!result.getStatus().isSuccess()) {
+            if(! result.getStatus().isSuccess())
+            {
                 Log.e(LOG_TAG, String.format("Error sending data using DataApi (error code = %d)",
                         result.getStatus().getStatusCode()));
-            } else {
+            }
+            else
+            {
                 Log.d(LOG_TAG, "Data Updated successfully...");
             }
 
-        } else {
+        }
+        else
+        {
             Log.e(LOG_TAG, String.format(Constants.GOOGLE_API_CLIENT_ERROR_MSG,
                     connectionResult.getErrorCode()));
-            Log.e(LOG_TAG, "succ=" + connectionResult.isSuccess() + "::conn=" + googleApiClient.isConnected() + "::size=" + dataMapList.size());
+            Log.e(LOG_TAG, "succ=" + connectionResult.isSuccess() + "::conn=" + googleApiClient
+                    .isConnected());
         }
         googleApiClient.disconnect();
     }
@@ -633,6 +632,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
     private void notifyWeather()
     {
+        Log.d(LOG_TAG, "notifyWeather");
         Context context = getContext();
         //checking the last update and notify if it' the first of the day
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
@@ -641,6 +641,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 Boolean.parseBoolean(context.getString(R.string
                         .pref_enable_notifications_default)));
 
+        Log.d(LOG_TAG, "displayNotifications::" + displayNotifications);
         if(displayNotifications)
         {
 
@@ -659,7 +660,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 Cursor cursor = context.getContentResolver().query(weatherUri,
                         NOTIFY_WEATHER_PROJECTION, null, null, null);
 
-                if(cursor.moveToFirst())
+                if(cursor != null && cursor.moveToFirst())
                 {
                     int weatherId = cursor.getInt(INDEX_WEATHER_ID);
                     double high = cursor.getDouble(INDEX_MAX_TEMP);
@@ -706,7 +707,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
                     // Define the text of the forecast.
                     String contentText = String.format(context.getString(R.string
-                            .format_notification),
+                                    .format_notification),
                             desc,
                             Utility.formatTemperature(context, high),
                             Utility.formatTemperature(context, low));
@@ -733,17 +734,14 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                     TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
                     stackBuilder.addNextIntent(resultIntent);
                     PendingIntent resultPendingIntent =
-                            stackBuilder.getPendingIntent(
-                                    0,
-                                    PendingIntent.FLAG_UPDATE_CURRENT
-                            );
+                            stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
                     mBuilder.setContentIntent(resultPendingIntent);
 
-                    NotificationManager mNotificationManager =
-                            (NotificationManager) getContext().getSystemService(Context
-                                    .NOTIFICATION_SERVICE);
+                    NotificationManagerCompat mNotificationManager =
+                            NotificationManagerCompat.from(getContext());
                     // WEATHER_NOTIFICATION_ID allows you to update the notification later on.
                     mNotificationManager.notify(WEATHER_NOTIFICATION_ID, mBuilder.build());
+                    Log.d("kaushik", "ShowedNotification");
 
                     //refreshing last sync
                     SharedPreferences.Editor editor = prefs.edit();
@@ -751,6 +749,10 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                     editor.commit();
                 }
                 cursor.close();
+            }
+            else
+            {
+                Log.d(LOG_TAG, "Not showing Notification");
             }
         }
     }

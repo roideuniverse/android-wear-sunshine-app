@@ -12,7 +12,8 @@ public class Constants
             "Failed to connect to GoogleApiClient (error code = %d)";
 
     public static String EXTRA_TIMESTAMP = "extra_timestamp";
-    public static final String EXTRA_WEATHERS = "extra_weathers";
+    public static final String EXTRA_DATA_WEATHER = "extra_weathers";
+    public static final String EXTRA_DATA_IS_METRIC = "extra_metric";
 
     public static final String WEATHER_PATH = "/weather";
 }

@@ -29,11 +29,12 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
 
-import roideuniverse.sunshine.common.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
+
+import roideuniverse.sunshine.common.WeatherContract;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings.

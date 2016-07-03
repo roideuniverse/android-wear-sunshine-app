@@ -19,7 +19,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -31,17 +30,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import roideuniverse.sunshine.common.WeatherContract;
 import com.example.android.sunshine.app.gcm.RegistrationIntentService;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.PutDataMapRequest;
-import com.google.android.gms.wearable.PutDataRequest;
-import com.google.android.gms.wearable.Wearable;
+
+import roideuniverse.sunshine.common.WeatherContract;
 
 public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback
 {
@@ -64,7 +58,6 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-        sendTestData();
 
         if(findViewById(R.id.weather_detail_container) != null)
         {
@@ -231,60 +224,5 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
             return false;
         }
         return true;
-    }
-
-    private static final String COUNT_KEY = "com.example.key.count";
-
-    private GoogleApiClient mGoogleApiClient;
-    private int count = 0;
-    private static final String TAG = MainActivity.class.getSimpleName();
-
-    private void sendTestData()
-    {
-        new WearUtil().sendMessage(this);
-
-        Log.d(TAG, "sendingTestData");
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks()
-                {
-                    @Override
-                    public void onConnected(Bundle bundle)
-                    {
-                        Log.d(TAG, "onConnected:sendingData:");
-                        PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/count");
-                        putDataMapReq.getDataMap().putInt(COUNT_KEY, count++);
-                        PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
-                        putDataMapReq.setUrgent();
-                        PendingResult<DataApi.DataItemResult> pendingResult =
-                                Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
-
-                        new Handler().postDelayed(new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                Log.d(TAG, "disconnecting");
-                                mGoogleApiClient.disconnect();
-                            }
-                        }, 30000);
-                    }
-
-                    @Override
-                    public void onConnectionSuspended(int i)
-                    {
-
-                    }
-                })
-                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener()
-                {
-                    @Override
-                    public void onConnectionFailed(ConnectionResult connectionResult)
-                    {
-
-                    }
-                })
-                .build();
-        mGoogleApiClient.connect();
     }
 }
