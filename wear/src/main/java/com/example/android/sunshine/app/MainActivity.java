@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import roideuniverse.sunshine.common.Constants;
 import roideuniverse.sunshine.common.WeatherContract;
 
 public class MainActivity extends Activity implements
@@ -25,7 +26,7 @@ public class MainActivity extends Activity implements
     private TextView mMinTempTv;
     private ImageView mCurrWeatherImgView;
 
-    private static final String[] WEATHER_COLUMNS = {
+    private static final String[] WEAR_WEATHER_COLUMNS = {
             WeatherContract.WeatherEntry.COLUMN_DATE,
             WeatherContract.WeatherEntry.COLUMN_SHORT_DESC,
             WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
@@ -60,7 +61,7 @@ public class MainActivity extends Activity implements
 
         return new CursorLoader(MainActivity.this,
                 WeatherContract.WeatherEntry.CONTENT_URI,
-                WEATHER_COLUMNS,
+                WEAR_WEATHER_COLUMNS,
                 null,
                 null,
                 sortOrder);
@@ -70,6 +71,12 @@ public class MainActivity extends Activity implements
     public void onLoadFinished(Loader<Cursor> loader, Cursor data)
     {
         Log.d(TAG, "onLoadFinished::count=" + data.getCount());
+        if(data.getCount() <=0 )
+        {
+            // Send msg to app that no data
+            MessengerUtil.sendNoDataMessage(getApplicationContext());
+            return;
+        }
         for(int i=0;i<data.getCount(); i++)
         {
             data.moveToPosition(i);

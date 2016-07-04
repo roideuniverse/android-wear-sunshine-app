@@ -89,7 +89,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
     private static final int INDEX_MAX_TEMP = 1;
     private static final int INDEX_MIN_TEMP = 2;
     private static final int INDEX_SHORT_DESC = 3;
-    public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
+    public static final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
 
     public SunshineSyncAdapter(Context context, boolean autoInitialize)
     {
@@ -502,7 +502,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
 
                 if(i == 0)
                 {
-                    sendDataToWear(weatherValues);
+                    WearMessageListener.sendDataToWear(getContext(), weatherValues);
                 }
             }
 
@@ -538,76 +538,6 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
     }
 
     private static final String TAG = SunshineSyncAdapter.class.getSimpleName();
-
-    private void sendDataToWear(ContentValues cv)
-    {
-        Log.d(TAG, "SendDataToWear");
-
-        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
-                .addApi(Wearable.API)
-                .build();
-
-        ConnectionResult connectionResult = googleApiClient.blockingConnect(
-                Constants.GOOGLE_API_CLIENT_TIMEOUT_S, TimeUnit.SECONDS);
-
-        DataMap data = new DataMap();
-        boolean isMetric = Utility.isMetric(getContext());
-        Log.d(TAG, "setIsMetric::" + isMetric);
-        data.putBoolean(Constants.EXTRA_DATA_IS_METRIC, isMetric);
-        data.putString(WeatherContract.WeatherEntry.COLUMN_LOC_KEY,
-                cv.get(WeatherContract.WeatherEntry.COLUMN_LOC_KEY).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_DATE, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_DATE).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_HUMIDITY, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_HUMIDITY).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_PRESSURE, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_PRESSURE).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_WIND_SPEED).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_DEGREES, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_DEGREES).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_MAX_TEMP).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_MIN_TEMP).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_SHORT_DESC).toString());
-        data.putString(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, cv.get(WeatherContract
-                .WeatherEntry.COLUMN_WEATHER_ID).toString());
-
-        if(connectionResult.isSuccess() && googleApiClient.isConnected())
-        {
-
-            PutDataMapRequest dataMap = PutDataMapRequest.create(Constants.WEATHER_PATH);
-            dataMap.getDataMap().putDataMap(Constants.EXTRA_DATA_WEATHER, data);
-            dataMap.getDataMap().putLong(Constants.EXTRA_TIMESTAMP, new Date().getTime());
-            PutDataRequest request = dataMap.asPutDataRequest();
-            request.setUrgent();
-
-            // Send the data over
-            DataApi.DataItemResult result =
-                    Wearable.DataApi.putDataItem(googleApiClient, request).await();
-
-            if(! result.getStatus().isSuccess())
-            {
-                Log.e(LOG_TAG, String.format("Error sending data using DataApi (error code = %d)",
-                        result.getStatus().getStatusCode()));
-            }
-            else
-            {
-                Log.d(LOG_TAG, "Data Updated successfully...");
-            }
-
-        }
-        else
-        {
-            Log.e(LOG_TAG, String.format(Constants.GOOGLE_API_CLIENT_ERROR_MSG,
-                    connectionResult.getErrorCode()));
-            Log.e(LOG_TAG, "succ=" + connectionResult.isSuccess() + "::conn=" + googleApiClient
-                    .isConnected());
-        }
-        googleApiClient.disconnect();
-    }
 
     private void updateWidgets()
     {

@@ -41,7 +41,7 @@
                     android:path="/weather"
                     android:scheme="wear"/>
 
-                <data android:scheme="wear" android:host="*" android:pathPrefix="/test"/>
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/syncwear"/>
             </intent-filter>
         </service>
 

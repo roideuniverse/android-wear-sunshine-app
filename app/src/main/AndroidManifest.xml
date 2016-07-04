@@ -108,6 +108,15 @@
                 android:resource="@xml/syncadapter"/>
         </service>
 
+        <!-- Listen from messages from wear -->
+        <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+        <service android:name=".sync.WearMessageListener" android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/syncwear"/>
+            </intent-filter>
+        </service>
+
         <!-- The Google Cloud Messaging receiver and services -->
         <receiver
             android:name="com.google.android.gms.gcm.GcmReceiver"
