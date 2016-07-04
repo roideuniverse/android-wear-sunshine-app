@@ -16,9 +16,10 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.Target;
 import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
-import com.example.android.sunshine.app.data.WeatherContract;
 
 import java.util.concurrent.ExecutionException;
+
+import roideuniverse.sunshine.common.WeatherContract;
 
 /**
  * RemoteViewsService controlling the data being shown in the scrollable weather detail widget

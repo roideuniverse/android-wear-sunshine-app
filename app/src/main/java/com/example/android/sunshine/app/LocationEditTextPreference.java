@@ -95,7 +95,7 @@ public class LocationEditTextPreference extends EditTextPreference
                 try
                 {
                     settingsActivity.startActivityForResult(
-                            builder.build(context), SettingsActivity.PLACE_PICKER_REQUEST);
+                            builder.build((Activity) context), SettingsActivity.PLACE_PICKER_REQUEST);
 
                 }
                 catch(GooglePlayServicesNotAvailableException
