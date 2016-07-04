@@ -84,8 +84,8 @@ public class MainActivity extends Activity implements
             String maxTemp = data.getString(2);
             String minTemp = data.getString(3);
             String weatherId = data.getString(4);
-            mMaxTempTv.setText(formatTemperature(getApplicationContext(), Double.parseDouble(maxTemp)));
-            mMinTempTv.setText(formatTemperature(getApplicationContext(), Double.parseDouble(minTemp)));
+            mMaxTempTv.setText(Util.formatTemperature(getApplicationContext(), Double.parseDouble(maxTemp)));
+            mMinTempTv.setText(Util.formatTemperature(getApplicationContext(), Double.parseDouble(minTemp)));
             Log.d(TAG, "i=" + i + "::data=" + date + "::maxT=" + maxTemp + "::minT=" + minTemp + "::wid=" + weatherId);
             int iconRes = getIconResourceForWeatherCondition(Integer.parseInt(weatherId));
             if(iconRes != -1) {
@@ -103,21 +103,6 @@ public class MainActivity extends Activity implements
     public void onLoaderReset(Loader<Cursor> loader)
     {
         Log.d(TAG, "onLoaderReset");
-    }
-
-    public static String formatTemperature(Context context, double temperature)
-    {
-        // Data stored in Celsius by default.  If user prefers to see in Fahrenheit, convert
-        // the values here.
-        String suffix = "\u00B0";
-        Log.d(TAG, "isMetric=" + PrefManager.getInstance(context).isMetric());
-        if(! PrefManager.getInstance(context).isMetric())
-        {
-            temperature = (temperature * 1.8) + 32;
-        }
-
-        // For presentation, assume the user doesn't care about tenths of a degree.
-        return String.format(context.getString(R.string.format_temperature), temperature);
     }
 
     public static int getIconResourceForWeatherCondition(int weatherId)
