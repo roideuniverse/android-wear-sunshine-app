@@ -1,9 +1,13 @@
 package com.example.android.sunshine.app.wface;
 
+import android.app.LoaderManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,10 +17,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
+import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
+import com.example.android.sunshine.app.MessengerUtil;
 import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Util;
 
@@ -24,6 +30,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import roideuniverse.sunshine.common.WeatherContract;
 
 /**
  * Created by roide on 7/3/16.
@@ -35,6 +43,14 @@ public class WatchFaceService extends CanvasWatchFaceService
     private static final int INTERACTIVE_UPDATE_RATE_MS = 1000 * 60;
     private static final String DATA_FORMAT = "EEE, MMM d, yyyy";
 
+    private static final String[] WEAR_WEATHER_COLUMNS = {
+            WeatherContract.WeatherEntry.COLUMN_DATE,
+            WeatherContract.WeatherEntry.COLUMN_SHORT_DESC,
+            WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+            WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
+            WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+    };
+
     @Override
     public Engine onCreateEngine()
     {
@@ -42,7 +58,7 @@ public class WatchFaceService extends CanvasWatchFaceService
         return new WatchFaceEngine();
     }
 
-    private class WatchFaceEngine extends CanvasWatchFaceService.Engine
+    private class WatchFaceEngine extends CanvasWatchFaceService.Engine implements Loader.OnLoadCompleteListener<Cursor>
     {
         final Handler mUpdateTimeHandler = new Handler()
         {
@@ -72,6 +88,11 @@ public class WatchFaceService extends CanvasWatchFaceService
             }
         };
 
+        private int mBgColorInterActive = Color.parseColor("#2979FF");
+        private int mBgColorDim = Color.BLACK;
+        private int mWhiteInterActive = Color.WHITE;
+        private int mWhiteAmbient = Color.parseColor("#50ffffff");
+
         private Calendar mCalendar;
         private SimpleDateFormat mSimpleDateFormat;
 
@@ -90,6 +111,10 @@ public class WatchFaceService extends CanvasWatchFaceService
 
         private Resources mResources = getResources();
 
+        private CursorLoader mCursorLoader;
+
+        private boolean mLowBitAmbient;
+
         @Override
         public void onCreate(SurfaceHolder holder)
         {
@@ -97,7 +122,7 @@ public class WatchFaceService extends CanvasWatchFaceService
             Log.d(TAG, "onCreate");
 
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(getColor(R.color.blue));
+            mBackgroundPaint.setColor(mBgColorInterActive);
 
             mCalendar = Calendar.getInstance();
             mSimpleDateFormat = new SimpleDateFormat(DATA_FORMAT, Locale.US);
@@ -118,6 +143,25 @@ public class WatchFaceService extends CanvasWatchFaceService
             mHorizontalLinePaint.setColor(Color.parseColor("#40ffffff"));
 
             mWeatherImagePaint = new Paint();
+
+            // configure the system UI
+            setWatchFaceStyle(new WatchFaceStyle.Builder(WatchFaceService.this)
+                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_SHORT)
+                    .setBackgroundVisibility(WatchFaceStyle
+                            .BACKGROUND_VISIBILITY_INTERRUPTIVE)
+                    .setShowSystemUiTime(false)
+                    .build());
+
+            String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
+            mCursorLoader = new CursorLoader(
+                    getApplicationContext(),
+                    WeatherContract.WeatherEntry.CONTENT_URI,
+                    WEAR_WEATHER_COLUMNS,
+                    null,
+                    null,
+                    sortOrder);
+            mCursorLoader.registerListener(100, this);
+            mCursorLoader.startLoading();
         }
 
         @Override
@@ -125,6 +169,13 @@ public class WatchFaceService extends CanvasWatchFaceService
         {
             super.onDestroy();
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            if(mCursorLoader != null)
+            {
+                mCursorLoader.unregisterListener(this);
+                mCursorLoader.cancelLoadInBackground();
+                mCursorLoader.stopLoading();
+                mCursorLoader.reset();
+            }
         }
 
         @Override
@@ -139,7 +190,8 @@ public class WatchFaceService extends CanvasWatchFaceService
         public void onPropertiesChanged(Bundle properties)
         {
             super.onPropertiesChanged(properties);
-            Log.d(TAG, "onPropertiesChanged");
+            mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
+            Log.d(TAG, "onPropertiesChanged::" + mLowBitAmbient);
         }
 
         @Override
@@ -147,13 +199,30 @@ public class WatchFaceService extends CanvasWatchFaceService
         {
             super.onTimeTick();
             Log.d(TAG, "onTimeTick");
+            invalidate();
         }
 
         @Override
         public void onAmbientModeChanged(boolean inAmbientMode)
         {
             super.onAmbientModeChanged(inAmbientMode);
-            Log.d(TAG, "onAmbientModeChanged");
+            Log.d(TAG, "onAmbientModeChanged::" + mLowBitAmbient + "::mode=" + inAmbientMode);
+
+            adjustPaintColorToCurrentMode(mBackgroundPaint, mBgColorInterActive, mBgColorDim);
+            adjustPaintColorToCurrentMode(mCurrTimePaint, mWhiteInterActive, mWhiteAmbient);
+            adjustPaintColorToCurrentMode(mMaxTemperaturePaint, mWhiteInterActive, mWhiteAmbient);
+
+            if(mLowBitAmbient)
+            {
+                boolean antiAlias = !inAmbientMode;
+                mHorizontalLinePaint.setAntiAlias(antiAlias);
+                mBackgroundPaint.setAntiAlias(antiAlias);
+                mCurrDatePaint.setAntiAlias(antiAlias);
+                mCurrTimePaint.setAntiAlias(antiAlias);
+                mMaxTemperaturePaint.setAntiAlias(antiAlias);
+                mMinTemperaturePaint.setAntiAlias(antiAlias);
+            }
+            invalidate();
         }
 
         @Override
@@ -209,6 +278,14 @@ public class WatchFaceService extends CanvasWatchFaceService
             int imgLeft = mTempCenterX - (imgSize + tempWidth) /2;
             int imgRight = mTempCenterX - (imgSize + tempWidth) /2 + imgSize;
             drawable.setBounds(imgLeft, mTempCenterY , imgRight, mTempCenterY + imgSize);
+            if(isInAmbientMode())
+            {
+                drawable.setAlpha(64);
+            }
+            else
+            {
+                drawable.setAlpha(255);
+            }
             drawable.draw(canvas);
 
             // Draw temp text
@@ -225,7 +302,7 @@ public class WatchFaceService extends CanvasWatchFaceService
 
         private boolean shouldTimerBeRunning()
         {
-            return false;
+            return isVisible() && !isInAmbientMode();
         }
 
         private Paint createTextPaint(int color, float textSize)
@@ -236,6 +313,12 @@ public class WatchFaceService extends CanvasWatchFaceService
             paint.setAntiAlias(true);
             //paint.setTypeface();
             return paint;
+        }
+
+        private void adjustPaintColorToCurrentMode(Paint paint, int interactiveColor,
+                                                   int ambientColor)
+        {
+            paint.setColor(isInAmbientMode() ? ambientColor : interactiveColor);
         }
 
         private String formatTwoDigitNumber(int number)
@@ -250,6 +333,7 @@ public class WatchFaceService extends CanvasWatchFaceService
 
         private String getFormattedTime()
         {
+            mCalendar.setTimeInMillis(System.currentTimeMillis());
             String hour = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
             String minute = formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE));
             return hour + ":" + minute;
@@ -257,17 +341,22 @@ public class WatchFaceService extends CanvasWatchFaceService
 
         private Drawable getWeatherStatusImage()
         {
+            int res = Util.getIconResourceForWeatherCondition(mWeatherType);
+            if(res != -1)
+            {
+                getResources().getDrawable(res);
+            }
             return getResources().getDrawable(R.drawable.art_clear);
         }
 
         private String getTempMin()
         {
-            return Util.formatTemperature(getApplicationContext(), Double.parseDouble("8"));
+            return Util.formatTemperature(getApplicationContext(), Double.parseDouble(mMinTemp));
         }
 
         private String getTempMax()
         {
-            return Util.formatTemperature(getApplicationContext(), Double.parseDouble("27"));
+            return Util.formatTemperature(getApplicationContext(), Double.parseDouble(mMaxTemp));
         }
 
         private int getHeight(String text, Paint paint)
@@ -283,5 +372,33 @@ public class WatchFaceService extends CanvasWatchFaceService
             paint.getTextBounds(text, 0, text.length(), mTempRect);
             return Math.abs(mTempRect.left - mTempRect.right);
         }
+
+        @Override
+        public void onLoadComplete(Loader<Cursor> loader, Cursor data)
+        {
+            if(data.getCount() <=0 )
+            {
+                // Send msg to app that no data
+                MessengerUtil.sendNoDataMessage(getApplicationContext());
+                return;
+            }
+            for(int i=0;i<data.getCount(); i++)
+            {
+                data.moveToPosition(i);
+                String date = data.getString(data.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_DATE));
+                String maxTemp = data.getString(2);
+                String minTemp = data.getString(3);
+                String weatherId = data.getString(4);
+                mMaxTemp = maxTemp;
+                mMinTemp = minTemp;
+                mWeatherType = Integer.parseInt(weatherId);
+                Log.d(TAG, "i=" + i + "::data=" + date + "::maxT=" + maxTemp + "::minT=" + minTemp + "::wid=" + weatherId);
+            }
+            invalidate();
+        }
+
+        private String mMinTemp = "0";
+        private String mMaxTemp = "0";
+        private int mWeatherType;
     }
 }
