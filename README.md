@@ -1,35 +1,26 @@
-Advanced Android Sample App
-===================================
+#android-nanodegree-project #6 Go Ubiquitous
 
-Synchronizes weather information from OpenWeatherMap on Android Phones and Tablets. Used in the Udacity Advanced Android course.
+Build a wearable watch face for Sunshine to run on an Android Wear device.
 
-Pre-requisites
---------------
-Android SDK 21 or Higher
-Build Tools version 21.1.2
-Android Support AppCompat 22.2.0
-Android Support Annotations 22.2.0
-Android Support GridLayout 22.2.0
-Android Support CardView 22.2.0
-Android Support Design 22.2.0
-Android Support RecyclerView 22.2.0
-Google Play Services GCM 7.0.0
-BumpTech Glide 3.5.2
+##Why this Project?
+Android Wear is an exciting way to integrate your app more directly into users’ lives. As a new developer, it will be important for you to understand how to perform this integration. This project gives you an opportunity to design a companion app for Sunshine, tying it to a watch face in order to enrich the experience.
+
+##What Will I Learn?
+1. Understand the fundamentals of Android Wear.
+2. Design for multiple watch form factors.
+3. Communicate between a mobile device and a wearable device.
+
+##Requirements
+1. App works on both round and square face watches.
+2. App displays the current time.
+3. App displays the high and low temperatures.
+4. App displays a graphic that summarizes the day’s weather (e.g., a sunny image, rainy image, cloudy image, etc.).
 
 
-Getting Started
----------------
-This sample uses the Gradle build system.  To build this project, use the
-"gradlew build" command or use "Import Project" in Android Studio.
+##Result
+![Sunshine Round](https://cloud.githubusercontent.com/assets/233539/18255776/0c73485c-737b-11e6-87b7-d51d2185cfcf.gif)
+![Sunshine Square](https://cloud.githubusercontent.com/assets/233539/18255778/0f145d44-737b-11e6-9c8d-f33ba2d4cb57.gif)
 
-Support
--------
-
-- Google+ Community: https://plus.google.com/communities/105153134372062985968
-- Stack Overflow: http://stackoverflow.com/questions/tagged/android
-
-Patches are encouraged, and may be submitted by forking this project and
-submitting a pull request through GitHub. Please see CONTRIBUTING.md for more details.
 
 License
 -------
